@@ -1,0 +1,38 @@
+{
+	"$schema": "/mediawiki/recentchange/1.0.0",
+	"meta": {
+		"uri": "https://en.wikipedia.org/wiki/Talk:Dan_Goldman",
+		"request_id": "3b04d142-389a-4969-9bcb-f93b200f7506",
+		"id": "0d57c619-7bdd-467f-aad5-f77d9c8c2cce",
+		"domain": "en.wikipedia.org",
+		"stream": "mediawiki.recentchange",
+		"dt": "2026-03-10T00:00:00.210Z",
+		"topic": "codfw.mediawiki.recentchange",
+		"partition": 0,
+		"offset": 2045490025
+	},
+	"id": 2004169333,
+	"type": "edit",
+	"namespace": 1,
+	"title": "Talk:Dan Goldman",
+	"title_url": "https://en.wikipedia.org/wiki/Talk:Dan_Goldman",
+	"comment": "/* Far right vs. right wing, etc. */",
+	"timestamp": 1773100797,
+	"user": "~2026-10081-45",
+	"bot": false,
+	"notify_url": "https://en.wikipedia.org/w/index.php?diff=1342628282&oldid=1342594302",
+	"minor": false,
+	"length": {
+		"old": 26978,
+		"new": 28188
+	},
+	"revision": {
+		"old": 1342594302,
+		"new": 1342628282
+	},
+	"server_url": "https://en.wikipedia.org",
+	"server_name": "en.wikipedia.org",
+	"server_script_path": "/w",
+	"wiki": "enwiki",
+	"parsedcomment": "<span class=\"autocomment\"><a href=\"/wiki/Talk:Dan_Goldman#Far_right_vs._right_wing,_etc.\" title=\"Talk:Dan Goldman\">\u2192<bdi dir=\"ltr\">Far right vs. right wing, etc.</bdi></a></span>"
+}

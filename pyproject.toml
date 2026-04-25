@@ -1,0 +1,11 @@
+[project]
+name = "wiki-events-pipeline"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "kafka-python>=2.3.1",
+    "pyspark[connect,pandas-on-spark,sql]>=4.1.1",
+    "requests>=2.33.1",
+]
