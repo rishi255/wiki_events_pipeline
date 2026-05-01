@@ -52,20 +52,40 @@ The producer ingests Wikimedia Server-Sent Events (SSE) from the public Wikipedi
   - Defines the SSE source URL and Kafka topic.
   - Contains allowed server names and event types.
 
+- `common/config.py`
+  - Shared configuration module used by both producer and consumer.
+  - Handles config file discovery and loading.
+  - Provides `get_bootstrap_servers()` for Kafka connection resolution.
+
 - `producer/Dockerfile`
   - Installs Python dependencies for the producer.
-  - Copies `producer/app/main.py` and `config.yaml`.
+  - Copies `producer/app/main.py`, `common/` module, and `config.yaml`.
 
 - `consumer/Dockerfile`
-  - Installs Python dependencies for the consumer.
-  - Intended to install Java for PySpark.
-  - Copies `consumer/app/main.py` and `config.yaml`.
+  - Installs Python dependencies and Java for PySpark.
+  - Copies `consumer/app/main.py`, `common/` module, and `config.yaml`.
+  - Sets `JAVA_HOME` and updates `PATH` for JVM access.
+
+- `producer/app/main.py`
+  - Uses shared `common.config` module for configuration.
+  - Reads Wikimedia SSE stream and publishes filtered events to Kafka.
 
 - `consumer/app/main.py`
-  - Configures SparkSession with `.master("local[*]")` and `spark.jars.packages`.
-  - Reads Kafka source stream and writes to console.
+  - Uses shared `common.config` module for getting the Kafka topic name and bootstrap servers.
+  - Configures SparkSession with `.master("local[*]")` and `.config()` settings:
+  - `spark.sql.shuffle.partitions=4`
+  - `spark.streaming.stopGracefullyOnShutdown=true`
+  - `spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.13:4.1.1`
+  - Reads Kafka stream and writes to console.
 
 ## Implementation details
+
+### Shared Configuration
+
+- Both producer and consumer use `common/config.py` for configuration management.
+- Config file discovery checks `./app/config.yaml`, `./config.yaml`, or `CONFIG_FILE_PATH` env var.
+- Kafka bootstrap servers resolved via `KAFKA_BOOTSTRAP_SERVERS` env var or config fallback.
+- Eliminates duplicate environment detection logic between services.
 
 ### Producer
 
@@ -77,7 +97,6 @@ The producer ingests Wikimedia Server-Sent Events (SSE) from the public Wikipedi
 
 ### Consumer
 
-- Loads `config.yaml` and reads `TOPIC`.
 - Creates SparkSession using:
   - `spark.sql.shuffle.partitions=4`
   - `spark.streaming.stopGracefullyOnShutdown=true`
@@ -85,32 +104,6 @@ The producer ingests Wikimedia Server-Sent Events (SSE) from the public Wikipedi
 - Reads Kafka stream with `startingOffsets=earliest`.
 - Converts `value` bytes to string and writes output to console.
 - Uses a checkpoint directory at `./checkpoints/curated_checkpoint`.
-
-## Consumer error analysis
-
-The error observed when launching the consumer is:
-
-```text
-JAVA_HOME is not set
-... PySparkRuntimeError: [JAVA_GATEWAY_EXITED] Java gateway process exited before sending its port number.
-```
-
-### Root cause
-
-- The consumer image was built from `python:3.11-slim`.
-- `consumer/Dockerfile` installed Python dependencies but did not install Java.
-- PySpark requires a JVM to start the SparkContext.
-- Without Java installed and `JAVA_HOME` configured, the Spark JVM gateway cannot launch.
-
-### Fix applied
-
-Updated `consumer/Dockerfile` to install Java and set `JAVA_HOME`:
-
-- `default-jdk`
-- `ENV JAVA_HOME=/usr/lib/jvm/default-java`
-- `ENV PATH="$JAVA_HOME/bin:$PATH"`
-
-This should allow PySpark to start successfully inside the consumer container.
 
 ## How to run
 
@@ -127,4 +120,5 @@ This should allow PySpark to start successfully inside the consumer container.
 
 - The consumer currently writes output to the console, not back into Kafka.
 - The Kafka connector jar package is downloaded by Spark at runtime from Maven.
-- If the consumer still fails after the Java fix, ensure network access from the container for artifact download and verify Spark package compatibility with the installed PySpark version.
+- Configuration is shared between producer and consumer via `common/config.py`.
+- Both services use consistent environment detection for local vs Docker execution.
