@@ -40,7 +40,7 @@ services:
         build:
             context: ./
             dockerfile: ./producer/Dockerfile
-        restart: "always"
+        restart: "unless-stopped"
         depends_on:
             - kafka-kraft
         environment:
@@ -52,7 +52,7 @@ services:
         build:
             context: ./
             dockerfile: ./consumer/Dockerfile
-        restart: "always"
+        restart: "unless-stopped"
         depends_on:
             - kafka-kraft
             - python-producer
