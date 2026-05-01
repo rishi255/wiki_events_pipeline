@@ -5,10 +5,12 @@ services:
         ports:
             - "8123:8123"
             - "9000:9000"
+        environment:
+            CLICKHOUSE_USER: admin
+            CLICKHOUSE_PASSWORD: clickhouse
         volumes:
             - clickhouse_data:/var/lib/clickhouse
-        depends_on:
-            - python-consumer
+        # cannot define "depends-on" property here as python-consumer is a separate compose file now.
         networks:
             - pipeline-net
         restart: unless-stopped
