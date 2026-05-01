@@ -1,0 +1,66 @@
+services:
+    ed-pyspark-jupyter:
+        image: easewithdata/pyspark-jupyter-lab
+        user: root
+        container_name: ed-pyspark-jupyter-lab
+        ports:
+            - 8888:8888
+            - 4040:4040
+        environment:
+            JUPYTER_PORT: 8888
+            SPARK_UI_PORT: 4040
+            GRANT_SUDO: yes
+        volumes:
+            - ./:/opt/data:rw
+
+    kafka-kraft:
+        image: confluentinc/cp-kafka:8.2.0
+        container_name: kafka-kraft
+        ports:
+            - 9101:9101
+        volumes:
+            - ./:/opt/data:ro
+        environment:
+            KAFKA_NODE_ID: 1
+            KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+            KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-kraft:29092,PLAINTEXT_HOST://localhost:9092"
+            KAFKA_JMX_PORT: 9101
+            KAFKA_JMX_HOSTNAME: localhost
+            KAFKA_PROCESS_ROLES: "broker,controller"
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka-kraft:29093"
+            KAFKA_LISTENERS: "PLAINTEXT://kafka-kraft:29092,CONTROLLER://kafka-kraft:29093,PLAINTEXT_HOST://0.0.0.0:9092"
+            KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+            KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+            CLUSTER_ID: "OWcEIgkAT9q7cDUgdSgTdg"
+        networks:
+            - broker-kafka
+
+    python-producer:
+        build:
+            context: ./
+            dockerfile: ./producer/Dockerfile
+        restart: "always"
+        depends_on:
+            - kafka-kraft
+        environment:
+            KAFKA_BOOTSTRAP_SERVERS: "kafka-kraft:29092" # Use service name within Docker network
+        networks:
+            - broker-kafka
+
+    python-consumer:
+        build:
+            context: ./
+            dockerfile: ./consumer/Dockerfile
+        restart: "always"
+        depends_on:
+            - kafka-kraft
+            - python-producer
+        environment:
+            KAFKA_BOOTSTRAP_SERVERS: "kafka-kraft:29092" # Use service name within Docker network
+        networks:
+            - broker-kafka
+
+networks:
+    broker-kafka:
+        driver: bridge

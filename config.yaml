@@ -1,0 +1,4 @@
+SSE_URL: "https://stream.wikimedia.org/v2/stream/recentchange"
+TOPIC: "wiki_raw_events"
+ALLOWED_SERVER_NAMES: { "en.wikipedia.org" }
+ALLOWED_TYPES: {} # {"new", "edit"}

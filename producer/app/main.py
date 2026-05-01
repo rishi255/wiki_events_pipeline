@@ -1,25 +1,28 @@
 import json
-import threading
+import os
 import time
+
 import requests
-from kafka import KafkaProducer, KafkaConsumer
+import yaml
+from kafka import KafkaProducer
 
-# -----------------------------------
-# CONFIG
-# -----------------------------------
-SSE_URL = "https://stream.wikimedia.org/v2/stream/recentchange"
+IS_CONTAINER = os.getenv("KAFKA_BOOTSTRAP_SERVERS") is not None
 
-TOPIC = "wiki_raw_events"
-BROKER = "localhost:9092"
-
-producer = KafkaProducer(
-    bootstrap_servers=BROKER,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+# use Docker service name when running in container, otherwise localhost
+KAFKA_BOOTSTRAP_SERVERS = (
+    os.getenv("KAFKA_BOOTSTRAP_SERVERS") if IS_CONTAINER else "localhost:9092"
 )
 
-# Optional filters
-ALLOWED_SERVER_NAMES = {"en.wikipedia.org"}
-ALLOWED_TYPES = set()  # {"new", "edit"}
+CONFIG_FILE_PATH = "./app/config.yaml" if IS_CONTAINER else "./config.yaml"
+
+
+with open(CONFIG_FILE_PATH, "r") as f:
+    config = yaml.safe_load(f)
+
+producer = KafkaProducer(
+    bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+)
 
 
 # -----------------------------------
@@ -47,10 +50,13 @@ def recentchange_filter(payload: dict) -> bool:
     server_name = payload.get("server_name")
     event_type = payload.get("type")
 
-    if ALLOWED_SERVER_NAMES and server_name not in ALLOWED_SERVER_NAMES:
+    if (
+        config["ALLOWED_SERVER_NAMES"]
+        and server_name not in config["ALLOWED_SERVER_NAMES"]
+    ):
         return False
 
-    if ALLOWED_TYPES and event_type not in ALLOWED_TYPES:
+    if config["ALLOWED_TYPES"] and event_type not in config["ALLOWED_TYPES"]:
         return False
 
     return True
@@ -71,7 +77,7 @@ def sse_to_kafka():
             print("Connecting to Wikipedia SSE stream...")
 
             with requests.get(
-                SSE_URL,
+                config["SSE_URL"],
                 headers=headers,
                 stream=True,
                 timeout=60,
@@ -91,7 +97,10 @@ def sse_to_kafka():
                             continue
 
                         # Raw event pushed unchanged
-                        producer.send(TOPIC, payload)
+                        producer.send(config["TOPIC"], payload)
+                        print(
+                            f"Produced event: [{payload.get('server_name')}] {payload.get('type')} | {payload.get('user')} -> {payload.get('title')}"
+                        )
 
                     except Exception as e:
                         print("Producer parse/send error:", e)
@@ -102,38 +111,37 @@ def sse_to_kafka():
 
 
 # -----------------------------------
-# CONSUMER
+# CONSUMER DEMO POC
 # Raw topic reader with stream-aware display only
 # -----------------------------------
-def kafka_consumer():
-    consumer = KafkaConsumer(
-        TOPIC,
-        bootstrap_servers=BROKER,
-        auto_offset_reset="latest",
-        group_id="wiki-demo-group",
-        value_deserializer=lambda m: json.loads(m.decode("utf-8")),
-    )
+# def kafka_consumer():
+#     consumer = KafkaConsumer(
+#         config["TOPIC"],
+#         bootstrap_servers=BROKER,
+#         auto_offset_reset="latest",
+#         group_id="wiki-demo-group",
+#         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+#     )
 
-    print("Kafka consumer started...\n")
+#     print("Kafka consumer started...\n")
 
-    for msg in consumer:
-        data = msg.value
-        stream = data.get("meta", {}).get("stream")
+#     for msg in consumer:
+#         data = msg.value
+#         stream = data.get("meta", {}).get("stream")
 
-        if stream == "mediawiki.recentchange":
-            print(
-                f"[{data.get('server_name')}] "
-                f"{data.get('type')} | "
-                f"{data.get('user')} -> "
-                f"{data.get('title')}"
-            )
-        else:
-            print(f"[{stream}] event received")
+#         if stream == "mediawiki.recentchange":
+#             print(
+#                 f"[{data.get('server_name')}] "
+#                 f"{data.get('type')} | "
+#                 f"{data.get('user')} -> "
+#                 f"{data.get('title')}"
+#             )
+#         else:
+#             print(f"[{stream}] event received")
 
 
 # -----------------------------------
 # MAIN
 # -----------------------------------
 if __name__ == "__main__":
-    threading.Thread(target=sse_to_kafka, daemon=True).start()
-    kafka_consumer()
+    sse_to_kafka()

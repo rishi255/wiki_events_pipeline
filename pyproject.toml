@@ -3,9 +3,20 @@ name = "wiki-events-pipeline"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
-    "kafka-python>=2.3.1",
+    "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+consumer = [
     "pyspark[connect,pandas-on-spark,sql]>=4.1.1",
+]
+dev = [
+    "black>=26.3.1",
+    "isort>=8.0.1",
+]
+producer = [
+    "kafka-python>=2.3.1",
     "requests>=2.33.1",
 ]
