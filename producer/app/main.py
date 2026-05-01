@@ -7,7 +7,12 @@ from kafka import KafkaProducer
 from common.config import get_bootstrap_servers, load_config
 
 config = load_config()
+
 KAFKA_BOOTSTRAP_SERVERS = get_bootstrap_servers(config)
+ALLOWED_SERVER_NAMES = config["ALLOWED_SERVER_NAMES"]
+ALLOWED_TYPES = config["ALLOWED_TYPES"]
+SSE_URL = config["SSE_URL"]
+TOPIC = config["TOPIC"]
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
@@ -40,13 +45,10 @@ def recentchange_filter(payload: dict) -> bool:
     server_name = payload.get("server_name")
     event_type = payload.get("type")
 
-    if (
-        config["ALLOWED_SERVER_NAMES"]
-        and server_name not in config["ALLOWED_SERVER_NAMES"]
-    ):
+    if ALLOWED_SERVER_NAMES and server_name not in ALLOWED_SERVER_NAMES:
         return False
 
-    if config["ALLOWED_TYPES"] and event_type not in config["ALLOWED_TYPES"]:
+    if ALLOWED_TYPES and event_type not in ALLOWED_TYPES:
         return False
 
     return True
@@ -67,7 +69,7 @@ def sse_to_kafka():
             print("Connecting to Wikipedia SSE stream...")
 
             with requests.get(
-                config["SSE_URL"],
+                SSE_URL,
                 headers=headers,
                 stream=True,
                 timeout=60,
@@ -87,7 +89,7 @@ def sse_to_kafka():
                             continue
 
                         # Raw event pushed unchanged
-                        producer.send(config["TOPIC"], payload)
+                        producer.send(TOPIC, payload)
                         print(
                             f"Produced event: [{payload.get('server_name')}] {payload.get('type')} | {payload.get('user')} -> {payload.get('title')}"
                         )
@@ -106,8 +108,8 @@ def sse_to_kafka():
 # -----------------------------------
 # def kafka_consumer():
 #     consumer = KafkaConsumer(
-#         config["TOPIC"],
-#         bootstrap_servers=BROKER,
+#         TOPIC,
+#         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
 #         auto_offset_reset="latest",
 #         group_id="wiki-demo-group",
 #         value_deserializer=lambda m: json.loads(m.decode("utf-8")),
