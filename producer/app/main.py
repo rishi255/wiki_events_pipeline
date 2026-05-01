@@ -1,23 +1,13 @@
 import json
-import os
 import time
 
 import requests
-import yaml
 from kafka import KafkaProducer
 
-IS_CONTAINER = os.getenv("KAFKA_BOOTSTRAP_SERVERS") is not None
+from common.config import get_bootstrap_servers, load_config
 
-# use Docker service name when running in container, otherwise localhost
-KAFKA_BOOTSTRAP_SERVERS = (
-    os.getenv("KAFKA_BOOTSTRAP_SERVERS") if IS_CONTAINER else "localhost:9092"
-)
-
-CONFIG_FILE_PATH = "./app/config.yaml" if IS_CONTAINER else "./config.yaml"
-
-
-with open(CONFIG_FILE_PATH, "r") as f:
-    config = yaml.safe_load(f)
+config = load_config()
+KAFKA_BOOTSTRAP_SERVERS = get_bootstrap_servers(config)
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,

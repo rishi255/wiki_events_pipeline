@@ -30,8 +30,14 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # Copy source code
 COPY ./consumer/app ./app
 
+# Copy config handler code
+COPY ./common ./app/common
+
 # copy config file
 COPY ./config.yaml ./app/
+
+# define path to find config.yaml in container (used by /common/config.py)
+ENV CONFIG_FILE_PATH "./app/config.yaml"
 
 # Run the application
 CMD ["python", "./app/main.py"]
