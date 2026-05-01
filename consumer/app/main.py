@@ -18,7 +18,7 @@ KAFKA_BOOTSTRAP_SERVERS = get_bootstrap_servers(config)
 
 RAW_TOPIC = config["TOPIC"]
 
-CHECKPOINT_PATH = "./checkpoints/curated_checkpoint"
+CHECKPOINT_PATH = config["CHECKPOINT_PATH"]
 
 if os.name == "nt" and not os.environ.get("HADOOP_HOME"):
     print(
