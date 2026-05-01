@@ -1,0 +1,37 @@
+services:
+    clickhouse:
+        image: clickhouse/clickhouse-server:latest
+        container_name: clickhouse
+        ports:
+            - "8123:8123"
+            - "9000:9000"
+        volumes:
+            - clickhouse_data:/var/lib/clickhouse
+        depends_on:
+            - python-consumer
+        networks:
+            - pipeline-net
+        restart: unless-stopped
+
+    grafana:
+        image: grafana/grafana:latest
+        container_name: grafana
+        ports:
+            - "3000:3000"
+        environment:
+            GF_SECURITY_ADMIN_PASSWORD: admin
+        volumes:
+            - grafana_data:/var/lib/grafana
+        depends_on:
+            - clickhouse
+        networks:
+            - pipeline-net
+        restart: unless-stopped
+
+volumes:
+    clickhouse_data:
+    grafana_data:
+
+networks:
+    pipeline-net:
+        external: true

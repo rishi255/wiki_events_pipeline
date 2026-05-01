@@ -1,0 +1,40 @@
+services:
+    ed-pyspark-jupyter:
+        image: easewithdata/pyspark-jupyter-lab
+        user: root
+        container_name: ed-pyspark-jupyter-lab
+        ports:
+            - 8888:8888
+            - 4040:4040
+        environment:
+            JUPYTER_PORT: 8888
+            SPARK_UI_PORT: 4040
+            GRANT_SUDO: yes
+        volumes:
+            - ../:/opt/data:rw # needs binding for hot reload
+        networks:
+            - pipeline-net
+
+    python-consumer:
+        build:
+            context: ../
+            dockerfile: ./consumer/Dockerfile
+        restart: "unless-stopped"
+        # cannot define "depends-on" property here as kafka-kraft is a separate compose file now.
+        environment:
+            KAFKA_BOOTSTRAP_SERVERS: "kafka-kraft:29092"
+        volumes:
+            # no mounting/binding volumes for consumer code here, as code to run is copied in the Dockerfile
+            # below are simply for persisting spark checkpoints and cache
+            - spark_checkpoints:/app/checkpoints
+            - spark_ivy:/tmp/ivy
+        networks:
+            - pipeline-net
+
+volumes:
+    spark_checkpoints:
+    spark_ivy: # for spark ivy cache
+
+networks:
+    pipeline-net:
+        external: true

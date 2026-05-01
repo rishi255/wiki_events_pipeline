@@ -1,0 +1,16 @@
+services:
+    python-producer:
+        build:
+            context: ../
+            dockerfile: ./producer/Dockerfile
+        restart: "unless-stopped"
+        # cannot define "depends-on" property here as kafka-kraft is a separate compose file now.
+        environment:
+            KAFKA_BOOTSTRAP_SERVERS: "kafka-kraft:29092"
+        # no volume mounting/binding here as producer code to run is copied in the Dockerfile
+        networks:
+            - pipeline-net
+
+networks:
+    pipeline-net:
+        external: true
